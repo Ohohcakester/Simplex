@@ -1,0 +1,11 @@
+n m
+
+<vector c - n numbers>
+
+<matrix A - m rows of n numbers>
+
+<vector b - m entries of b>
+
+
+n = number of variables
+m = number of equations (rows of A)
