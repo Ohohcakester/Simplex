@@ -79,13 +79,6 @@ void multiplyRow(int n, int m, Fraction** BA, int rw, Fraction f) {
     }
 }
 
-void multiplyCol(int n, int m, Fraction** BA, int cl, Fraction f) {
-    for (int i=0; i<m; i++) {
-        BA[i][cl] *= f;
-    }
-}
-
-
 // Returns the row index of the only non-zero item in the column.
 // The non-zero item must be positive.
 // If there is more than one non-zero item in the column, returns -1.
@@ -486,6 +479,7 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     return optimalSolution;
 }
 
+
 Fraction scanFraction() {
     string s;
     cin >> s;
@@ -494,7 +488,6 @@ Fraction scanFraction() {
 
 
 void interpretAndPrint(int n, Fraction* c, Fraction* optimalSolution) {
-
     if (optimalSolution[0].isInvalid()) {
         cout << "UNBOUNDED" << endl;
         cout << "Optimal Objective Value = -infinity";
@@ -516,11 +509,9 @@ void interpretAndPrint(int n, Fraction* c, Fraction* optimalSolution) {
 
 int main(int argc, char** argv) {
     /**
-    * Conditions for Standard LP:
-    * min cTx
-    * Ax = b
-    * x >= 0
-    *
+    * Conditions for Standard LP: min cTx
+    *                             Ax = b
+    *                             x >= 0
     * Note: no condition that b >= 0. We need to convert it ourselves.
     */
 

@@ -4,11 +4,6 @@
 #include "fraction.h"
 using namespace std;
 
-/*
-Reference: Creating object arrays properly in C++.
-http://www.devx.com/cplus/10MinuteSolution/30508/0/page/2
-*/
-
 Fraction::Fraction() {
     // Invalid
     this->n = 0;
