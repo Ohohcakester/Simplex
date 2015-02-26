@@ -82,13 +82,14 @@ void multiplyCol(int n, int m, Fraction** BA, int cl, Fraction f) {
 }
 
 
-// Returns the row index of the only positive (& non-zero) item in the column.
+// Returns the row index of the only non-zero item in the column.
+// The non-zero item must be positive.
 // If there is more than one non-zero item in the column, returns -1.
-int findOnlyPositiveItemInColumn(int n, int m, Fraction** BA, int cl) {
+int findOnlyPositiveNonZeroItemInColumn(int n, int m, Fraction** BA, int cl) {
     int nonZeroIndex = -1;
     for (int i=0; i<m; i++) {
-        if (BA[i][cl].isPositive()) {
-            if (nonZeroIndex == -1) {
+        if (!BA[i][cl].isZero()) {
+            if (BA[i][cl].isPositive() && nonZeroIndex == -1) {
                 nonZeroIndex = i;
             } else {
                 // More than one non-zero item.
@@ -212,11 +213,11 @@ Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBa
         neg_solution -= basicSolution[selected_row]*multiply;
 
 
-        //printArray(basicVariables, m);
-        //printArray(basicSolution, m);
-        //printArray(n_curr, m, BA);
-        //printArray(cBar, n_curr);
-        //cout << "----------------- " << neg_solution << endl;
+        printArray(basicVariables, m);
+        printArray(basicSolution, m);
+        printArray(n_curr, m, BA);
+        printArray(cBar, n_curr);
+        cout << "----------------- " << neg_solution << endl;
     }
     return neg_solution;
 }
@@ -260,7 +261,7 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     // >>> STEP 1 - Locate the rows without a corresponding elementary basis vector column.
     // If the column looks like this: 0 5 0 0 0, then divide the second row throughout by 5.
     for (int i=0; i<n; ++i) {
-        int row = findOnlyPositiveItemInColumn(n,m,BA,i);
+        int row = findOnlyPositiveNonZeroItemInColumn(n,m,BA,i);
         if (row != -1) {
             if (basicVariables[row] == -1) {
                 if (BA[row][i] != ONE) {
