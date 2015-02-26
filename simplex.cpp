@@ -116,6 +116,21 @@ Fraction** extendTableau(int n, int m, int n_new, Fraction** BA) {
     return BA_2;
 }
 
+// Returns an array "isBasic" corresponding to the column indexes.
+// An entry is true iff the index is a basic variable index.
+bool* makeIsBasicArray(int n_curr, int m, int* basicVariables) {
+    bool* isBasic = new bool[n_curr];
+    for (int x=0; x<n_curr; ++x) {
+        isBasic[x] = false;
+    }
+    for (int y=0; y<m; ++y) {
+        if (basicVariables[y] < n_curr) {
+            isBasic[basicVariables[y]] = true;
+        }
+    }
+    return isBasic;
+}
+
 Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBar,
         Fraction* basicSolution, int* basicVariables, Fraction neg_solution) {
     // This is STEP 5 of the Algorithm. (the tableau part)
@@ -164,29 +179,25 @@ Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBa
                         selected_row = y;
                     }
                 }
-                if (selected_row != -1) {
-                    // selected_row refers to a Zero Basic Aritificial Variable.
-                    bool* isBasic = new bool[n_orig];
-                    for (int x=0; x<n_orig; ++x) {
-                        isBasic[x] = false;
-                    }
-                    for (int y=0; y<m; ++y) {
-                        if (basicVariables[y] < n_orig) {
-                            isBasic[basicVariables[y]] = true;
-                        }
-                    }
-                    for (int x=0; x<n_orig; ++x) {
-                        if (!isBasic[x]) {
-                            selected_col = x;
-                            x = n_orig; // break out of for loop.
-                        }
-                    }
-                    // Don't break here! the simplex must continue!
-                } else {
-                    break;
+                if (selected_row == -1) {
+                    // okay, nothing wrong. Can end simplex.
+                    return neg_solution;
                 }
+
+                // selected_row refers to a Zero Basic Aritificial Variable.
+                // Now we just need to select any non-artificial nonbasic column to switch with.
+                // The movement distance is 0 anyway, so no need to worry about increasing the solution value.
+                bool* isBasic = makeIsBasicArray(n_orig, m, basicVariables);
+                for (int x=0; x<n_orig; ++x) {
+                    if (!isBasic[x]) {
+                        selected_col = x;
+                        x = n_orig; // break out of for loop.
+                    }
+                }
+                delete(isBasic);
+                // Don't end here! the simplex must continue!
             } else {
-                break; // End simplex method.
+                return neg_solution; // End simplex method.
             }
         }
 
@@ -217,14 +228,12 @@ Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBa
         }
         neg_solution -= basicSolution[selected_row]*multiply;
 
-
         //printArray(basicVariables, m);
         //printArray(basicSolution, m);
         //printArray(n_curr, m, BA);
         //printArray(cBar, n_curr);
         //cout << "----------------- " << neg_solution << endl;
     }
-    return neg_solution;
 }
 
 
@@ -349,14 +358,7 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     // for nonbasic variables, c[i] = -1 * dot(c_B,A_i)  where A_i is the ith column of A. 
     Fraction* cBar = createFractionArray(n_aux);
     {
-        bool* isBasic = new bool[n_aux]; // true iff the index refers to a basic var.
-        for (int i=0; i<n_aux; ++i) {
-            isBasic[i] = false;
-        }
-        for (int i=0; i<m; ++i) {
-            isBasic[basicVariables[i]] = true;
-        }
-
+        bool* isBasic = makeIsBasicArray(n_aux, m, basicVariables);
         for (int i=0; i<n_aux; ++i) {
             cBar[i] = ZERO;
             if (!isBasic[i]) {
@@ -408,18 +410,12 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     // >>> STEP 6 - Recompute the reduced costs.
     cBar = createFractionArray(n);
     {
-        bool* isBasic = new bool[n];
+        bool* isBasic = makeIsBasicArray(n, m, basicVariables);
         for (int x=0; x<n; ++x) {
-            isBasic[x] = false;
-            cBar[x] = c[x];
-        }
-        for (int y=0; y<m; ++y) {
-            isBasic[basicVariables[y]] = true;
-            cBar[basicVariables[y]] = ZERO;
-        }
-
-        for (int x=0; x<n; ++x) {
-            if (!isBasic[x]) {
+            if (isBasic[x]) {
+                cBar[x] = ZERO;
+            } else {
+                cBar[x] = c[x];
                 for (int y=0; y<m; y++) {
                     cBar[x] -= c[basicVariables[y]] * BA[y][x];
                 }
