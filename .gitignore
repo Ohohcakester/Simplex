@@ -3,3 +3,4 @@ f
 test
 *.out
 *.stackdump
+*.o

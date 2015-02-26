@@ -8,6 +8,10 @@ using namespace std;
  **  A simpleau implementation of the Simplex method algorithm for Standard LPs.
 **  --- Made by Oh
 **/
+const Fraction NEG_ONE = Fraction(-1);
+const Fraction ONE = Fraction(1);
+const Fraction ZERO = Fraction(0);
+const Fraction INVALID = Fraction();
 
 void printArrays(int n, int m, Fraction* b, Fraction** A, Fraction* c) {
     for (int i=0; i<n; i++)
@@ -114,34 +118,35 @@ Fraction** extendTableau(int n, int m, int n_new, Fraction** BA) {
 
 Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBar,
         Fraction* basicSolution, int* basicVariables, Fraction neg_solution) {
-    Fraction NEG_ONE = Fraction(-1);
-    Fraction ONE = Fraction(1);
+    // This is STEP 5 of the Algorithm. (the tableau part)
+    // The full algorithm is in the function runSimplex.
 
     while(true) {
         // >>> STEP 5A - Find a nonbasic variable with negative reduced cost.
         int selected_col = -1;
         int selected_row = -1;
         for (int x=0; x<n_curr; ++x) {
-            if (cBar[x].isNegative()) {
-                Fraction theta_bar = NEG_ONE;
+            if (!cBar[x].isNegative()) {
+                continue;
+            }
+            Fraction theta_bar = NEG_ONE;
 
-                // >>> STEP 5B - Compute Theta_bar. Try to find a positive one.
-                for (int y=0; y<m; ++y) {
-                    if (BA[y][x].isPositive()) {
-                        Fraction theta_y = basicSolution[y] / BA[y][x];
-                        if (theta_bar.isNegative() || theta_y < theta_bar) {
-                            theta_bar = theta_y;
-                            selected_row = y;
-                        }
+            // >>> STEP 5B - Compute Theta_bar. Try to find a positive one.
+            for (int y=0; y<m; ++y) {
+                if (BA[y][x].isPositive()) {
+                    Fraction theta_y = basicSolution[y] / BA[y][x];
+                    if (theta_bar.isNegative() || theta_y < theta_bar) {
+                        theta_bar = theta_y;
+                        selected_row = y;
                     }
                 }
-                if (theta_bar.isPositive()) {
-                    selected_col = x;
-                    x = n_curr; // break;
-                } else if (theta_bar.isNegative()) {
-                    // Solution is unbounded.
-                    return Fraction(); // Invalid fraction -> unbounded
-                }
+            }
+            if (theta_bar.isPositive()) {
+                selected_col = x;
+                x = n_curr; // break;
+            } else if (theta_bar.isNegative()) {
+                // Solution is unbounded.
+                return INVALID; // Invalid fraction -> unbounded
             }
         }
         //cout << "SELECT " << selected_col << " ROW " << selected_row << endl;
@@ -213,11 +218,11 @@ Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBa
         neg_solution -= basicSolution[selected_row]*multiply;
 
 
-        printArray(basicVariables, m);
-        printArray(basicSolution, m);
-        printArray(n_curr, m, BA);
-        printArray(cBar, n_curr);
-        cout << "----------------- " << neg_solution << endl;
+        //printArray(basicVariables, m);
+        //printArray(basicSolution, m);
+        //printArray(n_curr, m, BA);
+        //printArray(cBar, n_curr);
+        //cout << "----------------- " << neg_solution << endl;
     }
     return neg_solution;
 }
@@ -227,30 +232,22 @@ Fraction simplexMain(int n_curr, int n_orig, int m, Fraction** BA, Fraction* cBa
 
 // BA: B^-1*A
 Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
-    Fraction neg_solution = Fraction(0);
     int* basicVariables = new int[m]; // stores indices of basic variables.
     Fraction* basicSolution = createFractionArray(m);
 
-    const Fraction ZERO = Fraction(0);
-    const Fraction ONE = Fraction(1);
-    const Fraction NEG_ONE = Fraction(-1);
-
-    for (int i=0; i<m; i++) {
-        basicVariables[i] = -1;
+    for (int y=0; y<m; ++y) {
+        basicVariables[y] = -1;
     }
     /**
     * ----- PART ZERO --------------------------------- +++++++++++++++++++++++
     * ------------------------- MAKING b POSITIVE ----- +++++++++++++++++++++++
     **/
-    for (int i=0; i<m; ++i) {
-        if (b[i].isNegative()) {
-            for (int j=0; j<n; ++j) {
-                BA[i][j] *= NEG_ONE;
-            }
-            b[i] *= NEG_ONE;
+    for (int y=0; y<m; ++y) {
+        if (b[y].isNegative()) {
+            multiplyRow(n, m, BA, y, NEG_ONE);
+            b[y] *= NEG_ONE;
         }
     }
-
 
 
     /**
@@ -260,17 +257,18 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
 
     // >>> STEP 1 - Locate the rows without a corresponding elementary basis vector column.
     // If the column looks like this: 0 5 0 0 0, then divide the second row throughout by 5.
-    for (int i=0; i<n; ++i) {
-        int row = findOnlyPositiveNonZeroItemInColumn(n,m,BA,i);
-        if (row != -1) {
-            if (basicVariables[row] == -1) {
-                if (BA[row][i] != ONE) {
-                    Fraction multiply = ONE / BA[row][i];
-                    multiplyRow(n,m,BA,row,multiply);
-                    b[row] *= multiply;
-                }
-                basicVariables[row] = i;
+    for (int x=0; x<n; ++x) {
+        int row = findOnlyPositiveNonZeroItemInColumn(n,m,BA,x);
+        if (row == -1) {
+            continue;
+        }
+        if (basicVariables[row] == -1) {
+            if (BA[row][x] != ONE) {
+                Fraction multiply = ONE / BA[row][x];
+                multiplyRow(n,m,BA,row,multiply);
+                b[row] *= multiply;
             }
+            basicVariables[row] = x;
         }
     }
 
@@ -281,22 +279,22 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
 
 
     // >>> STEP 2 - Create auxiliary variables.
-    int n_aux = n; // number of variables in auxiliary LP.
-    for (int i=0; i<m; i++) {
-        if (basicVariables[i] == -1) {
+    int n_aux = n; // n_aux = number of variables in auxiliary LP.
+    for (int y=0; y<m; ++y) {
+        if (basicVariables[y] == -1) {
             n_aux++;
         }
     }
 
     // Resize the array BA.
     BA = extendTableau(n, m, n_aux, BA);
-    {
+    { // Initialise the new columns of BA with the artificial variables.
         int col = n;
-        for (int i=0; i<m; i++) {
-            if (basicVariables[i] == -1) {
-                basicVariables[i] = col;
+        for (int y=0; y<m; ++y) {
+            if (basicVariables[y] == -1) {
+                basicVariables[y] = col;
                 for (int j=0; j<m; j++) {
-                    if (j == i) {
+                    if (j == y) {
                         BA[j][col] = ONE;
                     } else {
                         BA[j][col] = ZERO;
@@ -310,11 +308,11 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
 
     // Use new cost vector.
     Fraction* c_aux = createFractionArray(n_aux);
-    for (int i=0; i<n; ++i) {
-        c_aux[i] = ZERO;
+    for (int x=0; x<n; ++x) {
+        c_aux[x] = ZERO;
     }
-    for (int i=n; i<n_aux; ++i) {
-        c_aux[i] = ONE;
+    for (int x=n; x<n_aux; ++x) {
+        c_aux[x] = ONE;
     }
 
     // STEP 2 - END
@@ -332,12 +330,13 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     // >>> STEP 3 - Get the first BFS.
     // Note: basic vectors are already chosen.
     // Set the current basicSolution.
-    for (int i=0; i<m; i++) {
-        basicSolution[i] = b[i];
+    for (int y=0; y<m; ++y) {
+        basicSolution[y] = b[y];
     }
-    // Set the current neg_solution value.
-    for (int i=0; i<m; i++) {
-        neg_solution -= basicSolution[i] * c_aux[basicVariables[i]];
+    // Set the current neg_solution value. (neg_solution is the negative of the solution value)
+    Fraction neg_solution = ZERO;
+    for (int y=0; y<m; ++y) {
+        neg_solution -= basicSolution[y] * c_aux[basicVariables[y]];
     }
 
     // STEP 3 - END
@@ -350,13 +349,14 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     // for nonbasic variables, c[i] = -1 * dot(c_B,A_i)  where A_i is the ith column of A. 
     Fraction* cBar = createFractionArray(n_aux);
     {
-        bool* isBasic = new bool[n_aux];
+        bool* isBasic = new bool[n_aux]; // true iff the index refers to a basic var.
         for (int i=0; i<n_aux; ++i) {
             isBasic[i] = false;
         }
         for (int i=0; i<m; ++i) {
             isBasic[basicVariables[i]] = true;
         }
+
         for (int i=0; i<n_aux; ++i) {
             cBar[i] = ZERO;
             if (!isBasic[i]) {
@@ -386,9 +386,9 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
         deleteArray(m, basicSolution);
         delete(basicVariables);
 
-        Fraction* fail = createFractionArray(1);
-        fail[0] = NEG_ONE;
-        return fail;
+        Fraction* infeasible = createFractionArray(1);
+        infeasible[0] = NEG_ONE;
+        return infeasible;
     }
 
     // STEP 5 - END
@@ -417,6 +417,7 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
             isBasic[basicVariables[y]] = true;
             cBar[basicVariables[y]] = ZERO;
         }
+
         for (int x=0; x<n; ++x) {
             if (!isBasic[x]) {
                 for (int y=0; y<m; y++) {

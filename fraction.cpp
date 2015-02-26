@@ -25,6 +25,12 @@ Fraction::Fraction(int n) {
 
 // Copy constructor
 Fraction::Fraction (const Fraction &o) {
+    if (o.d == 0) {
+        // Invalid fraction copy.
+        this->n = 0;
+        this->d = 0;
+        return;
+    }
     init(o.n, o.d);
 }
 
