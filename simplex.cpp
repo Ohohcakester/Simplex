@@ -384,7 +384,7 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
     deleteArray(n_aux, c_aux);
 
     if (neg_solution.isNegative()) {
-        // FAIL! Cleanup and return.
+        // INFEASIBLE! Cleanup and return.
         deleteArray(m, basicSolution);
         delete(basicVariables);
 
@@ -462,7 +462,7 @@ Fraction* runSimplex(int n, int m, Fraction* b, Fraction** BA, Fraction* c) {
 
 
     /**
-    * ----- PART THREE -------------------------------- +++++++++++++++++++++++
+    * ----- PART FOUR --------------------------------- +++++++++++++++++++++++
     * ------------------- FORMATTING THE SOLUTION ----- +++++++++++++++++++++++
     **/
 
